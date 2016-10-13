@@ -1,0 +1,5 @@
+ARG_ENABLE("ulopcodes", "enable ulopcodes support", "no");
+
+if (PHP_ULOPCODES != "no") {
+	EXTENSION("ulopcodes", "ulopcodes.c", true, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
+}
