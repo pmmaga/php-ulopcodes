@@ -120,7 +120,13 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 	}
 
 	for (i = 0; i < op_array->last; i++) {
-		php_printf("Opcode: %s\n", zend_get_opcode_name(op_array->opcodes[i].opcode));
+		if(op_array->opcodes[i].opcode == ZEND_INIT_FCALL) {
+			php_printf("Opcode: %s %d\n", zend_get_opcode_name(op_array->opcodes[i].opcode), op_array->opcodes[i].op2.num);
+		} else if (op_array->opcodes[i].opcode < ZEND_VM_LAST_OPCODE) {
+			php_printf("Opcode: %s\n", zend_get_opcode_name(op_array->opcodes[i].opcode));
+		} else {
+			php_printf("Opcode: UNKNOWN\n");
+		}
 	}
 }
 
