@@ -25,3 +25,11 @@ ulopcodes_emit(ZEND_ECHO, $greeting);
 
 As it is a Zend Extension, it must be built as a `shared` extension.
 Remember to add the `zend_extension` entry to your ini file.
+
+## Configuration
+
+The following settings are supported:
+```
+ulopcodes.enabled = false ; Enable to activate ulopcodes_emit
+ulopcodes.dump_oparray = false ; Enable to print a dump of the oparrays after modification
+```

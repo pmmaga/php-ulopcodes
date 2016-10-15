@@ -44,21 +44,12 @@ extern zend_module_entry ulopcodes_module_entry;
 #include "TSRM.h"
 #endif
 
-/*
-  	Declare any global variables you may need between the BEGIN
-	and END macros here:
-
 ZEND_BEGIN_MODULE_GLOBALS(ulopcodes)
-	zend_long  global_value;
-	char *global_string;
+	zend_bool enabled;
+	zend_bool dump_oparray;
 ZEND_END_MODULE_GLOBALS(ulopcodes)
-*/
 
-/* Always refer to the globals in your function as ULOPCODES_G(variable).
-   You are encouraged to rename these macros something shorter, see
-   examples in any other php module directory.
-*/
-#define ULOPCODES_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(ulopcodes, v)
+#define ULOP_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(ulopcodes, v)
 
 #define ULOP_OP1_CONSTANT(op_array, opline_num) \
         (op_array)->literals[(op_array)->opcodes[(opline_num)].op1.constant]
