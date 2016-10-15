@@ -169,9 +169,13 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 						/*
 							Get the user's opcode
 						*/
-						if (Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_LONG &&
-							Z_LVAL(ULOP_OP1_CONSTANT(op_array, j)) < ZEND_VM_LAST_OPCODE) {
+						if (op_array->opcodes[j].opcode == ZEND_SEND_VAL &&
+							Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_LONG &&
+							Z_LVAL(ULOP_OP1_CONSTANT(op_array, j)) < ZEND_VM_LAST_OPCODE
+						) {
 							opcode = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
+						} else if (op_array->opcodes[j].opcode == ZEND_SEND_VAR) {
+							php_error(E_ERROR, "Please use constants for the opcode passed to ulopcodes_emit.");
 						} else {
 							php_error(E_ERROR, "Unknown opcode passed to ulopcodes_emit.");
 						}
