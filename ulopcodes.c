@@ -27,6 +27,7 @@
 #include "php.h"
 #include "ext/standard/info.h"
 #include "Zend/zend.h"
+#include "Zend/zend_types.h"
 #include "Zend/zend_extensions.h"
 #include "Zend/zend_vm_opcodes.h"
 #include "php_ulopcodes.h"
@@ -327,10 +328,11 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 		*/
 		if (op_array->opcodes[i].opcode == ZEND_INIT_FCALL &&
 			op_array->opcodes[i].op2_type == IS_CONST &&
+			op_array->literals[op_array->opcodes[i].op2.constant].u1.v.type == IS_STRING &&
 			op_array->literals[op_array->opcodes[i].op2.constant].value.str->len == strlen("ulopcodes_emit") &&
 			strcmp(op_array->literals[op_array->opcodes[i].op2.constant].value.str->val, "ulopcodes_emit") == 0 //&& false
 		) {
-			unsigned int opcode = 0;
+			zend_uchar opcode = 0;
 			znode_op op1;
 			znode_op op2;
 			zend_uchar op1_type = IS_UNUSED;
@@ -350,9 +352,10 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 						/*
 							Get the user's opcode
 						*/
-						opcode = op_array->literals[op_array->opcodes[j].op1.constant].value.lval;
-						if (opcode > ZEND_VM_LAST_OPCODE) {
+						if (op_array->literals[op_array->opcodes[j].op1.constant].value.lval > ZEND_VM_LAST_OPCODE) {
 							php_error(E_ERROR, "Unknown opcode passed to ulopcodes_emit.");
+						} else {
+							opcode = op_array->literals[op_array->opcodes[j].op1.constant].value.lval;
 						}
 						op_array->opcodes[j].opcode = ZEND_NOP;
 					} else if (found == 1) {
@@ -366,8 +369,8 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 						/*
 							Get the second op
 						*/
-						op2_type = op_array->opcodes[j].op2_type;
-						op2 = op_array->opcodes[j].op2;
+						op2_type = op_array->opcodes[j].op1_type;
+						op2 = op_array->opcodes[j].op1;
 						op_array->opcodes[j].opcode = ZEND_NOP;
 					}
 					found++;
