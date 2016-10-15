@@ -8,6 +8,7 @@ You can use the function `[$result = ]ulopcodes_emit($opcode[, $op1][, $op2])` t
 
 ### Example
 
+Here's an Hello World:
 ```
 <?php
 
@@ -15,11 +16,11 @@ function getGreeting() {
     ulopcodes_emit(ZEND_RETURN, "Hello world!");
 }
 
-$greeting = getGreeting();
+ulopcodes_emit(ZEND_INIT_FCALL, IS_UNUSED, 'getgreeting');
+$greeting = ulopcodes_emit(ZEND_DO_FCALL);
 
 ulopcodes_emit(ZEND_ECHO, $greeting);
 ```
-
 ## Installation
 
 As it is a Zend Extension, it must be built as a `shared` extension.
