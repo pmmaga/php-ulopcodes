@@ -113,26 +113,95 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 {
 	unsigned int i;
 
-	if(op_array->function_name) {
-		php_printf("Function: %s\n", op_array->function_name->val);
-	} else {
-		php_printf("Function: (no name)\n");
-	}
+	// if(op_array->function_name) {
+	// 	php_printf("Function: %s\n", op_array->function_name->val);
+	// } else {
+	// 	php_printf("Function: (no name)\n");
+	// }
 
 	for (i = 0; i < op_array->last; i++) {
-		if(op_array->opcodes[i].opcode == ZEND_INIT_FCALL) {
-			php_printf("Opcode: %s %d\n", zend_get_opcode_name(op_array->opcodes[i].opcode), op_array->opcodes[i].op2.num);
-		} else if (op_array->opcodes[i].opcode < ZEND_VM_LAST_OPCODE) {
-			php_printf("Opcode: %s\n", zend_get_opcode_name(op_array->opcodes[i].opcode));
-		} else {
-			php_printf("Opcode: UNKNOWN\n");
-		}
-	}
-}
+		/*
+			If we find a call to the dummy function on the opcodes
+		*/
+		if (op_array->opcodes[i].opcode == ZEND_INIT_FCALL &&
+			op_array->opcodes[i].op2_type == IS_CONST &&
+			op_array->literals[op_array->opcodes[i].op2.constant].value.str->len == strlen("ulopcodes_emit") &&
+			strcmp(op_array->literals[op_array->opcodes[i].op2.constant].value.str->val, "ulopcodes_emit") == 0 //&& false
+		) {
+			unsigned int opcode = 0;
+			znode_op op1;
+			znode_op op2;
+			zend_uchar op1_type = IS_UNUSED;
+			zend_uchar op2_type = IS_UNUSED;
 
-ZEND_DLEXPORT void ulop_fcall_begin(zend_execute_data *frame)
-{
-	php_printf("fcall");
+			unsigned int j = i + 1;
+			unsigned int found = 0;
+
+			op_array->opcodes[i].opcode = ZEND_NOP;
+
+			/*
+				Get the operands from the SEND_VAL calls that follow
+			*/
+			while ((op_array->opcodes[j].opcode != ZEND_DO_ICALL) && (j < op_array->last - 1)) {
+				if (op_array->opcodes[j].opcode == ZEND_SEND_VAL || op_array->opcodes[j].opcode == ZEND_SEND_VAR) {
+					if (found == 0) {
+						/*
+							Get the user's opcode
+						*/
+						opcode = op_array->literals[op_array->opcodes[j].op1.constant].value.lval;
+						if (opcode > ZEND_VM_LAST_OPCODE) {
+							php_error(E_ERROR, "Unknown opcode passed to ulopcodes_emit.");
+						}
+						op_array->opcodes[j].opcode = ZEND_NOP;
+					} else if (found == 1) {
+						/*
+							Get the first op
+						*/
+						op1_type = op_array->opcodes[j].op1_type;
+						op1 = op_array->opcodes[j].op1;
+						op_array->opcodes[j].opcode = ZEND_NOP;
+					} else if (found == 2) {
+						/*
+							Get the second op
+						*/
+						op2_type = op_array->opcodes[j].op2_type;
+						op2 = op_array->opcodes[j].op2;
+						op_array->opcodes[j].opcode = ZEND_NOP;
+					}
+					found++;
+				}
+				j++;
+			}
+			if (found > 0) {
+				op_array->opcodes[j].opcode = opcode;
+			}
+			if (found > 1) {
+				op_array->opcodes[j].op1 = op1;
+				op_array->opcodes[j].op1_type = op1_type;
+			}
+			if (found > 2) {
+				op_array->opcodes[j].op2 = op2;
+				op_array->opcodes[j].op2_type = op2_type;
+			}
+		}
+
+		// if (op_array->opcodes[i].opcode < ZEND_VM_LAST_OPCODE) {
+		// 	if (op_array->opcodes[i].opcode == ZEND_INIT_FCALL && op_array->opcodes[i].op2_type == IS_CONST) {
+		// 		php_printf("Fcall Target: %s\n", op_array->literals[op_array->opcodes[i].op2.constant].value.str->val);
+		// 	}
+		// 	php_printf("Opcode: %s (%d - %d) (%d - %d)\n",
+		// 		zend_get_opcode_name(op_array->opcodes[i].opcode), 
+		// 		op_array->opcodes[i].op1_type, 
+		// 		op_array->opcodes[i].op1.num, 
+		// 		op_array->opcodes[i].op2_type, 
+		// 		op_array->opcodes[i].op2.num
+		// 	);
+		// } else {
+		// 	php_printf("Opcode: UNKNOWN\n");
+		// }
+	}
+
+	// php_printf("End function\n");
 }
 
 #ifndef ZEND_EXT_API
@@ -153,7 +222,7 @@ ZEND_DLEXPORT zend_extension zend_extension_entry = {
 	NULL,           	/* message_handler_func_t */
 	ulop_oparray_h,     /* op_array_handler_func_t */
 	NULL, 				/* statement_handler_func_t */
-	ulop_fcall_begin,	/* fcall_begin_handler_func_t */
+	NULL,				/* fcall_begin_handler_func_t */
 	NULL,				/* fcall_end_handler_func_t */
 	NULL,   			/* op_array_ctor_func_t */
 	NULL,           	/* op_array_dtor_func_t */
