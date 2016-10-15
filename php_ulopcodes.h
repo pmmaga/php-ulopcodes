@@ -60,6 +60,12 @@ ZEND_END_MODULE_GLOBALS(ulopcodes)
 */
 #define ULOPCODES_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(ulopcodes, v)
 
+#define ULOP_OP1_CONSTANT(op_array, opline_num) \
+        (op_array)->literals[(op_array)->opcodes[(opline_num)].op1.constant]
+
+#define ULOP_OP2_CONSTANT(op_array, opline_num) \
+        (op_array)->literals[(op_array)->opcodes[(opline_num)].op2.constant]
+
 #if defined(ZTS) && defined(COMPILE_DL_ULOPCODES)
 ZEND_TSRMLS_CACHE_EXTERN()
 #endif

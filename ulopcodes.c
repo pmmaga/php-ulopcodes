@@ -145,9 +145,9 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 		*/
 		if (op_array->opcodes[i].opcode == ZEND_INIT_FCALL &&
 			op_array->opcodes[i].op2_type == IS_CONST &&
-			op_array->literals[op_array->opcodes[i].op2.constant].u1.v.type == IS_STRING &&
-			op_array->literals[op_array->opcodes[i].op2.constant].value.str->len == strlen("ulopcodes_emit") &&
-			strcmp(op_array->literals[op_array->opcodes[i].op2.constant].value.str->val, "ulopcodes_emit") == 0 //&& false
+			Z_TYPE(ULOP_OP2_CONSTANT(op_array, i)) == IS_STRING &&
+			Z_STRLEN(ULOP_OP2_CONSTANT(op_array, i)) == strlen("ulopcodes_emit") &&
+			strcmp(Z_STRVAL(ULOP_OP2_CONSTANT(op_array, i)), "ulopcodes_emit") == 0 //&& false
 		) {
 			zend_uchar opcode = 0;
 			znode_op op1;
@@ -169,10 +169,11 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 						/*
 							Get the user's opcode
 						*/
-						if (op_array->literals[op_array->opcodes[j].op1.constant].value.lval > ZEND_VM_LAST_OPCODE) {
-							php_error(E_ERROR, "Unknown opcode passed to ulopcodes_emit.");
+						if (Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_LONG &&
+							Z_LVAL(ULOP_OP1_CONSTANT(op_array, j)) < ZEND_VM_LAST_OPCODE) {
+							opcode = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
 						} else {
-							opcode = op_array->literals[op_array->opcodes[j].op1.constant].value.lval;
+							php_error(E_ERROR, "Unknown opcode passed to ulopcodes_emit.");
 						}
 						op_array->opcodes[j].opcode = ZEND_NOP;
 					} else if (found == 1) {
