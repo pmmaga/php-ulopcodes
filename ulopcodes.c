@@ -162,6 +162,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 			) {
 				zend_op new_op;
 				MAKE_NOP(&new_op);
+				new_op.extended_value = 0;
 
 				unsigned int j = i + 1;
 				unsigned int found = 0;
