@@ -9,4 +9,4 @@ script:
   - ./configure
   - make all install
   - echo "zend_extension=ulopcodes.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
-  - REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=php php run-tests.php -c ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini -q -x --show-diff
+  - REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=~/.phpenv/versions/$(phpenv version-name)/php php run-tests.php -c ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini -q -x --show-diff
