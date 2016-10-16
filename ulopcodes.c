@@ -75,6 +75,8 @@ PHP_MINIT_FUNCTION(ulopcodes)
 		} 
 	}
 
+	REGISTER_STRING_CONSTANT("IS_UNUSED", "ULOP_IS_UNUSED", CONST_CS|CONST_PERSISTENT);
+
 	ZEND_INIT_MODULE_GLOBALS(ulopcodes, ulopcodes_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
 
@@ -160,11 +162,8 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 				Z_STRLEN(ULOP_OP2_CONSTANT(op_array, i)) == strlen("ulopcodes_emit") &&
 				strcmp(Z_STRVAL(ULOP_OP2_CONSTANT(op_array, i)), "ulopcodes_emit") == 0 //&& false
 			) {
-				zend_uchar opcode = 0;
-				znode_op op1;
-				znode_op op2;
-				zend_uchar op1_type = IS_UNUSED;
-				zend_uchar op2_type = IS_UNUSED;
+				zend_op new_op;
+				MAKE_NOP(&new_op);
 
 				unsigned int j = i + 1;
 				unsigned int found = 0;
@@ -184,7 +183,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 								Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_LONG &&
 								Z_LVAL(ULOP_OP1_CONSTANT(op_array, j)) < ZEND_VM_LAST_OPCODE
 							) {
-								opcode = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
+								new_op.opcode = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
 							} else if (op_array->opcodes[j].opcode == ZEND_SEND_VAR) {
 								php_error(E_ERROR, "Please use constants for the opcode passed to ulopcodes_emit.");
 							} else {
@@ -195,15 +194,35 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 							/*
 								Get the first op
 							*/
-							op1_type = op_array->opcodes[j].op1_type;
-							op1 = op_array->opcodes[j].op1;
+							new_op.op1_type = op_array->opcodes[j].op1_type;
+							if (new_op.op1_type != IS_UNUSED) {
+								if (new_op.op1_type == IS_CONST &&
+									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_STRING &&
+									Z_STRLEN(ULOP_OP1_CONSTANT(op_array, j)) == strlen("ULOP_IS_UNUSED") &&
+									strcmp(Z_STRVAL(ULOP_OP1_CONSTANT(op_array, j)), "ULOP_IS_UNUSED") == 0
+								) {
+									new_op.op1_type = IS_UNUSED;
+								} else {
+									new_op.op1 = op_array->opcodes[j].op1;
+								}
+							}
 							op_array->opcodes[j].opcode = ZEND_NOP;
 						} else if (found == 2) {
 							/*
 								Get the second op
 							*/
-							op2_type = op_array->opcodes[j].op1_type;
-							op2 = op_array->opcodes[j].op1;
+							new_op.op2_type = op_array->opcodes[j].op1_type;
+							if (new_op.op2_type != IS_UNUSED) {
+								if (new_op.op2_type == IS_CONST &&
+									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_STRING &&
+									Z_STRLEN(ULOP_OP1_CONSTANT(op_array, j)) == strlen("ULOP_IS_UNUSED") &&
+									strcmp(Z_STRVAL(ULOP_OP1_CONSTANT(op_array, j)), "ULOP_IS_UNUSED") == 0
+								) {
+									new_op.op2_type = IS_UNUSED;
+								} else {
+									new_op.op2 = op_array->opcodes[j].op1;
+								}
+							}
 							op_array->opcodes[j].opcode = ZEND_NOP;
 						}
 						found++;
@@ -211,15 +230,15 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 					j++;
 				}
 				if (found > 0) {
-					op_array->opcodes[j].opcode = opcode;
-				}
-				if (found > 1) {
-					op_array->opcodes[j].op1 = op1;
-					op_array->opcodes[j].op1_type = op1_type;
-				}
-				if (found > 2) {
-					op_array->opcodes[j].op2 = op2;
-					op_array->opcodes[j].op2_type = op2_type;
+					op_array->opcodes[j].opcode = new_op.opcode;
+					if(new_op.op1_type != IS_UNUSED) {
+						op_array->opcodes[j].op1_type = new_op.op1_type;
+						op_array->opcodes[j].op1 = new_op.op1;
+					}
+					if(new_op.op2_type != IS_UNUSED) {
+						op_array->opcodes[j].op2_type = new_op.op2_type;
+						op_array->opcodes[j].op2 = new_op.op2;
+					}
 				}
 			}
 
