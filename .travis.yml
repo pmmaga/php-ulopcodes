@@ -1,7 +1,7 @@
 language: php
 
 php:
-  - 7.0
+  - 7.1
 
 script:
   - export CFLAGS="-Wall -Wextra -Wdeclaration-after-statement -Wmissing-field-initializers -Wshadow -Wno-unused-parameter -ggdb3"
