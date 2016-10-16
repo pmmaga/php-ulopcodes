@@ -231,14 +231,10 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 				}
 				if (found > 0) {
 					op_array->opcodes[j].opcode = new_op.opcode;
-					if(new_op.op1_type != IS_UNUSED) {
-						op_array->opcodes[j].op1_type = new_op.op1_type;
-						op_array->opcodes[j].op1 = new_op.op1;
-					}
-					if(new_op.op2_type != IS_UNUSED) {
-						op_array->opcodes[j].op2_type = new_op.op2_type;
-						op_array->opcodes[j].op2 = new_op.op2;
-					}
+					op_array->opcodes[j].op1_type = new_op.op1_type;
+					op_array->opcodes[j].op1 = new_op.op1;
+					op_array->opcodes[j].op2_type = new_op.op2_type;
+					op_array->opcodes[j].op2 = new_op.op2;
 				}
 			}
 
