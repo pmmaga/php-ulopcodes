@@ -192,30 +192,42 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 							/*
 								Get the first op
 							*/
-							new_op.op1_type = op_array->opcodes[j].op1_type;
-							if (new_op.op1_type != IS_UNUSED) {
-								if (new_op.op1_type == IS_CONST &&
+							if (op_array->opcodes[j].op1_type != IS_UNUSED) {
+								if (op_array->opcodes[j].op1_type == IS_CONST &&
 									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_NULL
 								) {
 									new_op.op1_type = IS_UNUSED;
 								} else {
-									new_op.op1 = op_array->opcodes[j].op1;
+									new_op.op1_type = op_array->opcodes[j].op1_type;
 								}
+								new_op.op1 = op_array->opcodes[j].op1;
 							}
 							MAKE_NOP(&op_array->opcodes[j]);
 						} else if (found == 2) {
 							/*
 								Get the second op
 							*/
-							new_op.op2_type = op_array->opcodes[j].op1_type;
-							if (new_op.op2_type != IS_UNUSED) {
-								if (new_op.op2_type == IS_CONST &&
+							if (op_array->opcodes[j].op1_type != IS_UNUSED) {
+								if (op_array->opcodes[j].op1_type == IS_CONST &&
 									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_NULL
 								) {
 									new_op.op2_type = IS_UNUSED;
 								} else {
-									new_op.op2 = op_array->opcodes[j].op1;
+									new_op.op2_type = op_array->opcodes[j].op1_type;
 								}
+								new_op.op2 = op_array->opcodes[j].op1;
+							}
+							MAKE_NOP(&op_array->opcodes[j]);
+						} else if (found == 3) {
+							/*
+								Get the extended value
+							*/
+							if (op_array->opcodes[j].op1_type == IS_CONST &&
+								Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_LONG
+							) {
+								new_op.extended_value = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
+							} else {
+								php_error(E_ERROR, "Please use a number for the extended_value passed to ulopcodes_emit.");
 							}
 							MAKE_NOP(&op_array->opcodes[j]);
 						}
@@ -229,6 +241,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 					op_array->opcodes[j].op1 = new_op.op1;
 					op_array->opcodes[j].op2_type = new_op.op2_type;
 					op_array->opcodes[j].op2 = new_op.op2;
+					op_array->opcodes[j].extended_value = new_op.extended_value;
 				}
 			}
 
@@ -237,12 +250,13 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 					if (op_array->opcodes[i].opcode == ZEND_INIT_FCALL && op_array->opcodes[i].op2_type == IS_CONST) {
 						php_printf("Fcall Target: %s\n", op_array->literals[op_array->opcodes[i].op2.constant].value.str->val);
 					}
-					php_printf("Opcode: %s (%d - %d) (%d - %d)\n",
-						zend_get_opcode_name(op_array->opcodes[i].opcode), 
-						op_array->opcodes[i].op1_type, 
-						op_array->opcodes[i].op1.num, 
-						op_array->opcodes[i].op2_type, 
-						op_array->opcodes[i].op2.num
+					php_printf("Opcode: %s (%d - %d) (%d - %d) %d\n",
+						zend_get_opcode_name(op_array->opcodes[i].opcode),
+						op_array->opcodes[i].op1_type,
+						op_array->opcodes[i].op1.num,
+						op_array->opcodes[i].op2_type,
+						op_array->opcodes[i].op2.num,
+						op_array->opcodes[i].extended_value
 					);
 				} else {
 					php_printf("Opcode: UNKNOWN\n");
