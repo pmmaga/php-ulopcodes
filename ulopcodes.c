@@ -75,8 +75,6 @@ PHP_MINIT_FUNCTION(ulopcodes)
 		} 
 	}
 
-	REGISTER_STRING_CONSTANT("IS_UNUSED", "ULOP_IS_UNUSED", CONST_CS|CONST_PERSISTENT);
-
 	ZEND_INIT_MODULE_GLOBALS(ulopcodes, ulopcodes_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
 
@@ -197,9 +195,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 							new_op.op1_type = op_array->opcodes[j].op1_type;
 							if (new_op.op1_type != IS_UNUSED) {
 								if (new_op.op1_type == IS_CONST &&
-									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_STRING &&
-									Z_STRLEN(ULOP_OP1_CONSTANT(op_array, j)) == strlen("ULOP_IS_UNUSED") &&
-									strcmp(Z_STRVAL(ULOP_OP1_CONSTANT(op_array, j)), "ULOP_IS_UNUSED") == 0
+									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_NULL
 								) {
 									new_op.op1_type = IS_UNUSED;
 								} else {
@@ -214,9 +210,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 							new_op.op2_type = op_array->opcodes[j].op1_type;
 							if (new_op.op2_type != IS_UNUSED) {
 								if (new_op.op2_type == IS_CONST &&
-									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_STRING &&
-									Z_STRLEN(ULOP_OP1_CONSTANT(op_array, j)) == strlen("ULOP_IS_UNUSED") &&
-									strcmp(Z_STRVAL(ULOP_OP1_CONSTANT(op_array, j)), "ULOP_IS_UNUSED") == 0
+									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_NULL
 								) {
 									new_op.op2_type = IS_UNUSED;
 								} else {
