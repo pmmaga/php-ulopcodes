@@ -168,7 +168,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 				unsigned int j = i + 1;
 				unsigned int found = 0;
 
-				op_array->opcodes[i].opcode = ZEND_NOP;
+				MAKE_NOP(&op_array->opcodes[i]);
 
 				/*
 					Get the operands from the SEND_VAL calls that follow
@@ -189,7 +189,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 							} else {
 								php_error(E_ERROR, "Unknown opcode passed to ulopcodes_emit.");
 							}
-							op_array->opcodes[j].opcode = ZEND_NOP;
+							MAKE_NOP(&op_array->opcodes[j]);
 						} else if (found == 1) {
 							/*
 								Get the first op
@@ -206,7 +206,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 									new_op.op1 = op_array->opcodes[j].op1;
 								}
 							}
-							op_array->opcodes[j].opcode = ZEND_NOP;
+							MAKE_NOP(&op_array->opcodes[j]);
 						} else if (found == 2) {
 							/*
 								Get the second op
@@ -223,7 +223,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 									new_op.op2 = op_array->opcodes[j].op1;
 								}
 							}
-							op_array->opcodes[j].opcode = ZEND_NOP;
+							MAKE_NOP(&op_array->opcodes[j]);
 						}
 						found++;
 					}
