@@ -1,0 +1,12 @@
+language: php
+
+php:
+  - 7.1
+
+script:
+  - export CFLAGS="-Wall -Wextra -Wdeclaration-after-statement -Wmissing-field-initializers -Wshadow -Wno-unused-parameter -ggdb3"
+  - phpize
+  - ./configure
+  - make all install
+  - echo "zend_extension=ulopcodes.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+  - REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=~/.phpenv/versions/$(phpenv version-name)/bin/php php run-tests.php -c ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini -q -x --show-diff
