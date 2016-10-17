@@ -148,6 +148,11 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 			} else {
 				php_printf("Function: (no name)\n");
 			}
+			int k;
+			php_printf("Literals:\n");
+			for (k = 0; k < op_array->last_literal; k++) {
+				php_printf("%d - %d\n", k, Z_LVAL(op_array->literals[k]));
+			}
 		}
 
 		for (i = 0; i < op_array->last; i++) {
@@ -199,9 +204,14 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 								) {
 									new_op.op1_type = IS_UNUSED;
 								} else {
-									new_op.op1_type = op_array->opcodes[j].op1_type;
+									if (new_op.opcode == ZEND_JMP) {
+										new_op.op1_type = IS_UNUSED;
+										new_op.op1.opline_num = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
+									} else {
+										new_op.op1_type = op_array->opcodes[j].op1_type;
+										new_op.op1 = op_array->opcodes[j].op1;
+									}
 								}
-								new_op.op1 = op_array->opcodes[j].op1;
 							}
 							MAKE_NOP(&op_array->opcodes[j]);
 						} else if (found == 2) {
@@ -214,9 +224,14 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 								) {
 									new_op.op2_type = IS_UNUSED;
 								} else {
-									new_op.op2_type = op_array->opcodes[j].op1_type;
+									if (new_op.opcode == ZEND_JMPZ || new_op.opcode == ZEND_JMPNZ) {
+										new_op.op2_type = IS_UNUSED;
+										new_op.op2.opline_num = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
+									} else {
+										new_op.op2_type = op_array->opcodes[j].op1_type;
+										new_op.op2 = op_array->opcodes[j].op1;
+									}
 								}
-								new_op.op2 = op_array->opcodes[j].op1;
 							}
 							MAKE_NOP(&op_array->opcodes[j]);
 						} else if (found == 3) {
@@ -238,26 +253,32 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 				}
 				if (found > 0) {
 					op_array->opcodes[j].opcode = new_op.opcode;
-					op_array->opcodes[j].op1_type = new_op.op1_type;
-					op_array->opcodes[j].op1 = new_op.op1;
-					op_array->opcodes[j].op2_type = new_op.op2_type;
-					op_array->opcodes[j].op2 = new_op.op2;
-					op_array->opcodes[j].extended_value = new_op.extended_value;
+					if (found > 1) {
+						op_array->opcodes[j].op1_type = new_op.op1_type;
+						op_array->opcodes[j].op1 = new_op.op1;
+					}
+					if (found > 2) {
+						op_array->opcodes[j].op2_type = new_op.op2_type;
+						op_array->opcodes[j].op2 = new_op.op2;
+					}
+					if (found > 3) {
+						op_array->opcodes[j].extended_value = new_op.extended_value;
+					}
 				}
 			}
 
 			if (ULOP_G(dump_oparray)) {
 				if (op_array->opcodes[i].opcode < ZEND_VM_LAST_OPCODE) {
-					if (op_array->opcodes[i].opcode == ZEND_INIT_FCALL && op_array->opcodes[i].op2_type == IS_CONST) {
-						php_printf("Fcall Target: %s\n", op_array->literals[op_array->opcodes[i].op2.constant].value.str->val);
-					}
-					php_printf("Opcode: %s (%d - %d) (%d - %d) %d\n",
+					php_printf("%d - Opcode: %s Op1: (%d - %d) Op2: (%d - %d) Ext: %d Res: (%d - %d)\n",
+						i,
 						zend_get_opcode_name(op_array->opcodes[i].opcode),
 						op_array->opcodes[i].op1_type,
 						op_array->opcodes[i].op1.num,
 						op_array->opcodes[i].op2_type,
 						op_array->opcodes[i].op2.num,
-						op_array->opcodes[i].extended_value
+						op_array->opcodes[i].extended_value,
+						op_array->opcodes[i].result_type,
+						op_array->opcodes[i].result.num
 					);
 				} else {
 					php_printf("Opcode: UNKNOWN\n");
