@@ -1,7 +1,8 @@
 --TEST--
 Check emitting a function call
 --INI--
-ulopcodes.enabled = true
+ulopcodes.enabled = 1
+ulopcodes.dump_oparray = 0
 --FILE--
 <?php 
 

@@ -53,10 +53,10 @@ static void ulopcodes_init_globals(zend_ulopcodes_globals *ulopcodes_globals)
 /* }}} */
 
 /* {{{ proto string confirm_ulopcodes_compiled(string arg)
-   Dummy function to be found in the oparray */
+ */
 PHP_FUNCTION(ulopcodes_emit)
 {
-
+	// Dummy function to be found in the oparray
 }
 /* }}} */
 
@@ -130,6 +130,129 @@ zend_module_entry ulopcodes_module_entry = {
 };
 /* }}} */
 
+/* {{{ ulop_dump_oparray_header
+ *
+ * Prints information about an oparray.
+ */
+static void ulop_dump_oparray_header(zend_op_array *op_array) {
+	if(op_array->function_name) {
+		php_printf("--- Function: %s ---\n", op_array->function_name->val);
+	} else {
+		php_printf("--- Function: (no name) ---\n");
+	}
+	int k;
+	php_printf("Literals:\n");
+	for (k = 0; k < op_array->last_literal; k++) {
+		if (Z_TYPE(op_array->literals[k]) == IS_STRING) {
+			php_printf("%d - %s\n", k, Z_STRVAL(op_array->literals[k]));
+		} else {
+			php_printf("%d - %d\n", k, Z_LVAL(op_array->literals[k]));
+		}
+	}
+	php_printf("------\n");
+}
+/* }}} */
+
+/* {{{ ulop_dump_opline
+ *
+ * Prints information about an opline.
+ */
+static void ulop_dump_opline(zend_op opline, unsigned int i) {
+	if (opline.opcode < ZEND_VM_LAST_OPCODE) {
+		php_printf("%d - Opcode: %s Op1: (%d - %d) Op2: (%d - %d) Ext: %d Res: (%d - %d)\n",
+			i,
+			zend_get_opcode_name(opline.opcode),
+			opline.op1_type,
+			opline.op1.num,
+			opline.op2_type,
+			opline.op2.num,
+			opline.extended_value,
+			opline.result_type,
+			opline.result.num
+		);
+	} else {
+		php_printf("Opcode: UNKNOWN\n");
+	}
+}
+/* }}} */
+
+/* {{{ ulop_dump_oparray_footer
+ *
+ * Prints the footer for an oparray.
+ */
+static void ulop_dump_oparray_footer(zend_op_array *op_array) {
+	php_printf("--- End function ---\n");
+}
+/* }}} */
+
+/* {{{ ulop_get_user_opcode
+ *
+ * Gets the user's opcode from a SEND_VAL following the call to the dummy function
+ */
+static unsigned int ulop_get_user_opcode(zend_op_array *op_array, int i) {
+	if (op_array->opcodes[i].opcode == ZEND_SEND_VAL &&
+		Z_TYPE(ULOP_OP1_CONSTANT(op_array, i)) == IS_LONG &&
+		Z_LVAL(ULOP_OP1_CONSTANT(op_array, i)) < ZEND_VM_LAST_OPCODE
+	) {
+		return Z_LVAL(ULOP_OP1_CONSTANT(op_array, i));
+	} else if (op_array->opcodes[i].opcode == ZEND_SEND_VAR) {
+		php_error(E_ERROR, "Please use constants for the opcode passed to ulopcodes_emit.");
+	} else {
+		php_error(E_ERROR, "Unknown opcode passed to ulopcodes_emit.");
+	}
+
+	return ZEND_NOP;
+}
+/* }}} */
+
+/* {{{ ulop_get_user_op_type
+ *
+ * Gets the user's op type
+ */
+static unsigned int ulop_get_user_op_type(zend_op_array *op_array, int i, unsigned int dest_op_flags, unsigned int source_type) {
+	if (dest_op_flags & ZEND_VM_OP_JMP_ADDR) {
+		return IS_UNUSED;
+	}
+	if (source_type != IS_UNUSED) {
+		if (source_type == IS_CONST &&
+			Z_TYPE(ULOP_OP1_CONSTANT(op_array, i)) == IS_NULL
+		) {
+			return IS_UNUSED;
+		}
+	}
+
+	return source_type;
+}
+/* }}} */
+
+/* {{{ ulop_get_user_op_val
+ *
+ * Gets the user's op value
+ */
+static znode_op ulop_get_user_op_val(zend_op_array *op_array, int i, unsigned int dest_op_flags, unsigned int source_type, znode_op source_node) {
+	if (dest_op_flags & ZEND_VM_OP_JMP_ADDR) {
+		source_node.num = Z_LVAL(ULOP_OP1_CONSTANT(op_array, i));
+	} else if (Z_TYPE(ULOP_OP1_CONSTANT(op_array, i)) == IS_NULL) {
+		source_node.num = 0;
+	}
+	return source_node;
+}
+/* }}} */
+
+/* {{{ ulop_get_user_ext_val
+ *
+ * Gets the user's extended value
+ */
+static unsigned int ulop_get_user_ext_val(zend_op_array *op_array, int i) {
+	if (op_array->opcodes[i].op1_type == IS_CONST &&
+		Z_TYPE(ULOP_OP1_CONSTANT(op_array, i)) == IS_LONG
+	) {
+		return Z_LVAL(ULOP_OP1_CONSTANT(op_array, i));
+	}
+	php_error(E_ERROR, "Please use a number for the extended_value passed to ulopcodes_emit.");
+}
+/* }}} */
+
 ZEND_DLEXPORT int ulop_startup(zend_extension *extension)
 {
 	return zend_startup_module(&ulopcodes_module_entry);
@@ -143,16 +266,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 		unsigned int i;
 
 		if (ULOP_G(dump_oparray)) {
-			if(op_array->function_name) {
-				php_printf("Function: %s\n", op_array->function_name->val);
-			} else {
-				php_printf("Function: (no name)\n");
-			}
-			int k;
-			php_printf("Literals:\n");
-			for (k = 0; k < op_array->last_literal; k++) {
-				php_printf("%d - %d\n", k, Z_LVAL(op_array->literals[k]));
-			}
+			ulop_dump_oparray_header(op_array);
 		}
 
 		for (i = 0; i < op_array->last; i++) {
@@ -172,122 +286,75 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 				unsigned int j = i + 1;
 				unsigned int found = 0;
 
-				MAKE_NOP(&op_array->opcodes[i]);
+				unsigned int op_flags;
 
 				/*
-					Get the operands from the SEND_VAL calls that follow
+					Clear the dummy function and get operands from any SEND_VAL|SEND_VAR calls that follow
 				*/
+				MAKE_NOP(&op_array->opcodes[i]);
+
 				while ((op_array->opcodes[j].opcode != ZEND_DO_ICALL) && (j < op_array->last - 1)) {
 					if (op_array->opcodes[j].opcode == ZEND_SEND_VAL || op_array->opcodes[j].opcode == ZEND_SEND_VAR) {
 						if (found == 0) {
 							/*
 								Get the user's opcode
 							*/
-							if (op_array->opcodes[j].opcode == ZEND_SEND_VAL &&
-								Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_LONG &&
-								Z_LVAL(ULOP_OP1_CONSTANT(op_array, j)) < ZEND_VM_LAST_OPCODE
-							) {
-								new_op.opcode = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
-							} else if (op_array->opcodes[j].opcode == ZEND_SEND_VAR) {
-								php_error(E_ERROR, "Please use constants for the opcode passed to ulopcodes_emit.");
-							} else {
-								php_error(E_ERROR, "Unknown opcode passed to ulopcodes_emit.");
-							}
+							new_op.opcode = ulop_get_user_opcode(op_array, j);
 							MAKE_NOP(&op_array->opcodes[j]);
 						} else if (found == 1) {
 							/*
 								Get the first op
 							*/
-							if (op_array->opcodes[j].op1_type != IS_UNUSED) {
-								if (op_array->opcodes[j].op1_type == IS_CONST &&
-									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_NULL
-								) {
-									new_op.op1_type = IS_UNUSED;
-								} else {
-									if (new_op.opcode == ZEND_JMP) {
-										new_op.op1_type = IS_UNUSED;
-										new_op.op1.opline_num = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
-									} else {
-										new_op.op1_type = op_array->opcodes[j].op1_type;
-										new_op.op1 = op_array->opcodes[j].op1;
-									}
-								}
-							}
+							op_flags = ZEND_VM_OP1_FLAGS(zend_get_opcode_flags(new_op.opcode));
+							new_op.op1_type = ulop_get_user_op_type(op_array, j, op_flags, op_array->opcodes[j].op1_type);
+							new_op.op1 = ulop_get_user_op_val(op_array, j, op_flags, op_array->opcodes[j].op1_type, op_array->opcodes[j].op1);
 							MAKE_NOP(&op_array->opcodes[j]);
 						} else if (found == 2) {
 							/*
 								Get the second op
 							*/
-							if (op_array->opcodes[j].op1_type != IS_UNUSED) {
-								if (op_array->opcodes[j].op1_type == IS_CONST &&
-									Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_NULL
-								) {
-									new_op.op2_type = IS_UNUSED;
-								} else {
-									if (new_op.opcode == ZEND_JMPZ || new_op.opcode == ZEND_JMPNZ) {
-										new_op.op2_type = IS_UNUSED;
-										new_op.op2.opline_num = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
-									} else {
-										new_op.op2_type = op_array->opcodes[j].op1_type;
-										new_op.op2 = op_array->opcodes[j].op1;
-									}
-								}
-							}
+							op_flags = ZEND_VM_OP2_FLAGS(zend_get_opcode_flags(new_op.opcode));
+							new_op.op2_type = ulop_get_user_op_type(op_array, j, op_flags, op_array->opcodes[j].op1_type);
+							new_op.op2 = ulop_get_user_op_val(op_array, j, op_flags, op_array->opcodes[j].op1_type, op_array->opcodes[j].op1);
 							MAKE_NOP(&op_array->opcodes[j]);
 						} else if (found == 3) {
 							/*
 								Get the extended value
 							*/
-							if (op_array->opcodes[j].op1_type == IS_CONST &&
-								Z_TYPE(ULOP_OP1_CONSTANT(op_array, j)) == IS_LONG
-							) {
-								new_op.extended_value = Z_LVAL(ULOP_OP1_CONSTANT(op_array, j));
-							} else {
-								php_error(E_ERROR, "Please use a number for the extended_value passed to ulopcodes_emit.");
-							}
+							new_op.extended_value = ulop_get_user_ext_val(op_array, j);
 							MAKE_NOP(&op_array->opcodes[j]);
 						}
 						found++;
 					}
 					j++;
 				}
+
+				/*
+					Set the user's opcode
+				*/
 				if (found > 0) {
 					op_array->opcodes[j].opcode = new_op.opcode;
 					if (found > 1) {
 						op_array->opcodes[j].op1_type = new_op.op1_type;
 						op_array->opcodes[j].op1 = new_op.op1;
-					}
-					if (found > 2) {
-						op_array->opcodes[j].op2_type = new_op.op2_type;
-						op_array->opcodes[j].op2 = new_op.op2;
-					}
-					if (found > 3) {
-						op_array->opcodes[j].extended_value = new_op.extended_value;
+						if (found > 2) {
+							op_array->opcodes[j].op2_type = new_op.op2_type;
+							op_array->opcodes[j].op2 = new_op.op2;
+							if (found > 3) {
+								op_array->opcodes[j].extended_value = new_op.extended_value;
+							}
+						}
 					}
 				}
 			}
 
 			if (ULOP_G(dump_oparray)) {
-				if (op_array->opcodes[i].opcode < ZEND_VM_LAST_OPCODE) {
-					php_printf("%d - Opcode: %s Op1: (%d - %d) Op2: (%d - %d) Ext: %d Res: (%d - %d)\n",
-						i,
-						zend_get_opcode_name(op_array->opcodes[i].opcode),
-						op_array->opcodes[i].op1_type,
-						op_array->opcodes[i].op1.num,
-						op_array->opcodes[i].op2_type,
-						op_array->opcodes[i].op2.num,
-						op_array->opcodes[i].extended_value,
-						op_array->opcodes[i].result_type,
-						op_array->opcodes[i].result.num
-					);
-				} else {
-					php_printf("Opcode: UNKNOWN\n");
-				}
+				ulop_dump_opline(op_array->opcodes[i], i);
 			}
 		}
 
 		if (ULOP_G(dump_oparray)) {
-			php_printf("End function\n");
+			ulop_dump_oparray_footer(op_array);
 		}
 	}
 }

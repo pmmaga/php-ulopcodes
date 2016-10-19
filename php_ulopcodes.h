@@ -27,7 +27,7 @@ extern zend_module_entry ulopcodes_module_entry;
 #define phpext_ulopcodes_ptr &ulopcodes_module_entry
 
 #define PHP_ULOPCODES_NAME "ulopcodes"
-#define PHP_ULOPCODES_VERSION "0.1.1"
+#define PHP_ULOPCODES_VERSION "0.0.4"
 #define PHP_ULOPCODES_AUTHOR "Pedro Magalhães"
 #define PHP_ULOPCODES_URL "https://pmmaga.net/ulopcodes"
 #define PHP_ULOPCODES_COPYRIGHT "Copyright (c) 2016"
