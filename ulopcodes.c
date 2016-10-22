@@ -285,6 +285,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 
 				unsigned int j = i + 1;
 				unsigned int found = 0;
+				unsigned int level = 0;
 
 				unsigned int op_flags;
 
@@ -293,8 +294,8 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 				*/
 				MAKE_NOP(&op_array->opcodes[i]);
 
-				while ((op_array->opcodes[j].opcode != ZEND_DO_ICALL) && (j < op_array->last - 1)) {
-					if (op_array->opcodes[j].opcode == ZEND_SEND_VAL || op_array->opcodes[j].opcode == ZEND_SEND_VAR) {
+				while (((op_array->opcodes[j].opcode != ZEND_DO_ICALL) && (j < op_array->last - 1)) || level != 0) {
+					if (level == 0 && (op_array->opcodes[j].opcode == ZEND_SEND_VAL || op_array->opcodes[j].opcode == ZEND_SEND_VAR)) {
 						if (found == 0) {
 							/*
 								Get the user's opcode
@@ -325,6 +326,26 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 							MAKE_NOP(&op_array->opcodes[j]);
 						}
 						found++;
+					}
+					/*
+						Don't capture VAL|VAR sent to other functions
+					*/
+					if (op_array->opcodes[j].opcode == ZEND_INIT_FCALL ||
+						op_array->opcodes[j].opcode == ZEND_INIT_FCALL_BY_NAME ||
+						op_array->opcodes[j].opcode == ZEND_INIT_NS_FCALL_BY_NAME ||
+						op_array->opcodes[j].opcode == ZEND_INIT_METHOD_CALL ||
+						op_array->opcodes[j].opcode == ZEND_INIT_STATIC_METHOD_CALL ||
+						op_array->opcodes[j].opcode == ZEND_INIT_USER_CALL ||
+						op_array->opcodes[j].opcode == ZEND_INIT_DYNAMIC_CALL
+					){
+						level++;
+					}
+					if (op_array->opcodes[j].opcode == ZEND_DO_FCALL ||
+						op_array->opcodes[j].opcode == ZEND_DO_ICALL ||
+						op_array->opcodes[j].opcode == ZEND_DO_UCALL ||
+						op_array->opcodes[j].opcode == ZEND_DO_FCALL_BY_NAME
+					){
+						level--;
 					}
 					j++;
 				}

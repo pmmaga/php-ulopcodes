@@ -16,14 +16,14 @@ Here's an Hello World:
 ```
 <?php
 
-function getGreeting() {
-    ulopcodes_emit(ZEND_RETURN, "Hello world!");
+function getGreeting($name) {
+    $greeting = ulopcodes_emit(ZEND_CONCAT, "Hello ", $name);
+    $greeting = ulopcodes_emit(ZEND_CONCAT, $greeting, "!\n");
+    ulopcodes_emit(ZEND_RETURN, $greeting);
 }
 
-ulopcodes_emit(ZEND_INIT_FCALL, IS_UNUSED, 'getgreeting');
-$greeting = ulopcodes_emit(ZEND_DO_FCALL);
-
-ulopcodes_emit(ZEND_ECHO, $greeting);
+ulopcodes_emit(ZEND_ASSIGN, $fullGreeting, getGreeting("world"));
+ulopcodes_emit(ZEND_ECHO, $fullGreeting);
 ```
 ## Installation
 

@@ -16,5 +16,7 @@ $greeting = ulopcodes_emit(ZEND_DO_FCALL);
 ulopcodes_emit(ZEND_ECHO, $greeting);
 
 ?>
+--XFAIL--
+Bug when calling user functions https://github.com/pmmaga/php-ulopcodes/issues/3
 --EXPECT--
 Hello world!
