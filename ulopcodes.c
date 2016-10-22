@@ -135,12 +135,13 @@ zend_module_entry ulopcodes_module_entry = {
  * Prints information about an oparray.
  */
 static void ulop_dump_oparray_header(zend_op_array *op_array) {
+	int k;
+
 	if(op_array->function_name) {
 		php_printf("--- Function: %s ---\n", op_array->function_name->val);
 	} else {
 		php_printf("--- Function: (no name) ---\n");
 	}
-	int k;
 	php_printf("Literals:\n");
 	for (k = 0; k < op_array->last_literal; k++) {
 		if (Z_TYPE(op_array->literals[k]) == IS_STRING) {
@@ -250,6 +251,7 @@ static unsigned int ulop_get_user_ext_val(zend_op_array *op_array, int i) {
 		return Z_LVAL(ULOP_OP1_CONSTANT(op_array, i));
 	}
 	php_error(E_ERROR, "Please use a number for the extended_value passed to ulopcodes_emit.");
+	return 0;
 }
 /* }}} */
 
@@ -283,7 +285,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 				MAKE_NOP(&new_op);
 				new_op.extended_value = 0;
 
-				unsigned int j = i + 1;
+				unsigned int j = 0;
 				unsigned int found = 0;
 				unsigned int level = 0;
 
@@ -293,7 +295,7 @@ ZEND_DLEXPORT void ulop_oparray_h(zend_op_array *op_array)
 					Clear the dummy function and get operands from any SEND_VAL|SEND_VAR calls that follow
 				*/
 				MAKE_NOP(&op_array->opcodes[i]);
-
+				j = i + 1;
 				while (((op_array->opcodes[j].opcode != ZEND_DO_ICALL) && (j < op_array->last - 1)) || level != 0) {
 					if (level == 0 && (op_array->opcodes[j].opcode == ZEND_SEND_VAL || op_array->opcodes[j].opcode == ZEND_SEND_VAR)) {
 						if (found == 0) {
