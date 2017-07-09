@@ -2,6 +2,7 @@ language: php
 
 php:
   - 7.1
+  - nightly
 
 script:
   - export CFLAGS="-Wall -Wextra -Wdeclaration-after-statement -Wmissing-field-initializers -Wshadow -Wno-unused-parameter -ggdb3"
