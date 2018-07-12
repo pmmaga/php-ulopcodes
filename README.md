@@ -4,7 +4,7 @@ Allows emitting opcodes from PHP userland.
 
 [![Build Status](https://travis-ci.org/pmmaga/php-ulopcodes.svg?branch=master)](https://travis-ci.org/pmmaga/php-ulopcodes)
 
-Currently supports PHP 7.1
+Supports PHP 7.1+
 
 ## Usage
 
